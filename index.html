@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BassFlow EQ</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f13;color:#e0e0e0;min-height:100vh}
+.app{padding:1.5rem;max-width:700px;margin:0 auto}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #2a2a3a}
+.logo{width:40px;height:40px;border-radius:10px;background:#534AB7;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px}
+.title{font-size:18px;font-weight:600;color:#fff}
+.subtitle{font-size:13px;color:#888}
+.visualizer-wrap{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:1rem;margin-bottom:1.5rem}
+canvas#viz{width:100%;height:80px;display:block;border-radius:6px}
+.source-tabs{display:flex;gap:8px;margin-bottom:1rem}
+.tab{padding:6px 16px;border-radius:8px;border:1px solid #2a2a3a;background:transparent;cursor:pointer;font-size:13px;color:#888;transition:all 0.15s}
+.tab.active{background:#534AB7;color:#fff;border-color:#534AB7}
+.tab:hover:not(.active){border-color:#534AB7;color:#a89ff0}
+.source-panel{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem}
+.drop-zone{border:1px dashed #3a3a4a;border-radius:8px;padding:2rem;text-align:center;cursor:pointer;transition:all 0.15s;color:#888}
+.drop-zone:hover{border-color:#534AB7;color:#a89ff0}
+.drop-zone i{font-size:28px;margin-bottom:8px;display:block}
+.yt-search-row{display:flex;gap:8px;margin-bottom:12px}
+.yt-search-row input{flex:1;padding:8px 12px;border-radius:8px;border:1px solid #2a2a3a;background:#0f0f13;color:#e0e0e0;font-size:13px;outline:none}
+.yt-search-row input:focus{border-color:#534AB7}
+.yt-search-row button{padding:8px 16px;border-radius:8px;background:#534AB7;color:#fff;border:none;cursor:pointer;font-size:13px;white-space:nowrap}
+.yt-search-row button:hover{background:#6c63d4}
+.yt-results{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto}
+.yt-card{display:flex;gap:10px;align-items:center;background:#12121a;border:1px solid #2a2a3a;border-radius:8px;padding:8px;cursor:pointer;transition:border-color 0.15s}
+.yt-card:hover{border-color:#534AB7}
+.yt-thumb{width:80px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0}
+.yt-info{flex:1;min-width:0}
+.yt-vtitle{font-size:13px;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.yt-channel{font-size:11px;color:#888}
+.yt-card-btns{display:flex;gap:6px;flex-shrink:0}
+.yt-btn{padding:4px 10px;border-radius:6px;border:1px solid #2a2a3a;background:transparent;color:#888;font-size:11px;cursor:pointer;transition:all 0.15s}
+.yt-btn:hover{border-color:#534AB7;color:#a89ff0}
+.yt-btn.play{background:#534AB7;color:#fff;border-color:#534AB7}
+.yt-player-wrap{margin-top:12px;border-radius:10px;overflow:hidden;display:none}
+.yt-player-wrap iframe{width:100%;height:200px;display:block;border:none}
+.yt-notice{font-size:12px;color:#888;padding:8px 12px;background:#12121a;border-radius:8px;margin-top:8px;line-height:1.5}
+.player-bar{display:flex;align-items:center;gap:12px;background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:1rem;margin-bottom:1.5rem}
+.track-info{flex:1;min-width:0}
+.track-name{font-size:14px;font-weight:500;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-time{font-size:12px;color:#888;margin-top:2px}
+.progress-wrap{flex:2;display:flex;flex-direction:column;gap:6px}
+.prog-label{display:flex;justify-content:space-between;font-size:11px;color:#888}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:#2a2a3a;cursor:pointer;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#534AB7;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#534AB7;cursor:pointer;border:none}
+.btn-play{width:40px;height:40px;border-radius:50%;border:1px solid #2a2a3a;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:#e0e0e0;flex-shrink:0;transition:background 0.15s}
+.btn-play:hover{background:#2a2a3a}
+.eq-section{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.eq-title{font-size:11px;font-weight:600;color:#555;margin-bottom:1rem;text-transform:uppercase;letter-spacing:0.08em}
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1rem}
+.eq-knob{display:flex;flex-direction:column;gap:6px}
+.eq-label{font-size:12px;color:#888;display:flex;justify-content:space-between}
+.eq-val{color:#a89ff0;font-weight:500}
+.presets-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem}
+.presets-row span{font-size:13px;font-weight:500;color:#e0e0e0}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem}
+.preset{padding:5px 14px;border-radius:8px;border:1px solid #2a2a3a;background:transparent;cursor:pointer;font-size:12px;color:#888;transition:all 0.15s}
+.preset:hover{border-color:#534AB7;color:#a89ff0}
+.preset.active{background:#1e1a3a;color:#a89ff0;border-color:#534AB7}
+.reset-btn{padding:5px 14px;border-radius:8px;border:1px solid #2a2a3a;background:transparent;cursor:pointer;font-size:12px;color:#888;transition:all 0.15s}
+.reset-btn:hover{background:#2a2a3a;color:#e0e0e0}
+.loading{font-size:13px;color:#888;padding:8px 0}
+.error-msg{font-size:12px;color:#e24b4a;padding:8px 12px;background:#1a0a0a;border-radius:8px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="logo"><i class="ti ti-waveform"></i></div>
+    <div>
+      <div class="title">BassFlow EQ</div>
+      <div class="subtitle">Ecualizador + buscador de YouTube</div>
+    </div>
+  </div>
+
+  <div class="visualizer-wrap">
+    <canvas id="viz"></canvas>
+  </div>
+
+  <div class="source-tabs">
+    <button class="tab active" onclick="switchTab('file')"><i class="ti ti-upload"></i> Subir archivo</button>
+    <button class="tab" onclick="switchTab('yt')"><i class="ti ti-brand-youtube"></i> YouTube</button>
+  </div>
+
+  <div class="source-panel">
+
+    <div id="panel-file">
+      <div class="drop-zone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+        <i class="ti ti-music"></i>
+        <div style="font-size:14px;margin-bottom:4px">Arrastra tu archivo de música aquí</div>
+        <div style="font-size:12px">MP3, WAV, OGG, FLAC — haz clic para buscar</div>
+      </div>
+      <input type="file" id="fileInput" accept="audio/*" style="display:none">
+    </div>
+
+    <div id="panel-yt" style="display:none">
+      <div class="yt-search-row">
+        <input type="text" id="ytSearch" placeholder="Busca una canción, artista o video..." onkeydown="if(event.key==='Enter')searchYT()">
+        <button onclick="searchYT()"><i class="ti ti-search"></i> Buscar</button>
+      </div>
+      <div id="yt-loading" style="display:none" class="loading"><i class="ti ti-loader"></i> Buscando...</div>
+      <div id="yt-error" style="display:none" class="error-msg"></div>
+      <div class="yt-results" id="yt-results"></div>
+      <div class="yt-player-wrap" id="yt-player-wrap">
+        <div id="yt-player"></div>
+      </div>
+      <div class="yt-notice" id="yt-notice" style="display:none">
+        <i class="ti ti-info-circle"></i> El EQ de bajos actúa sobre archivos MP3 que subas. El video de YouTube se reproduce en su propio reproductor — para aplicarle EQ descarga el MP3 y súbelo arriba.
+      </div>
+    </div>
+
+  </div>
+
+  <div class="player-bar">
+    <button class="btn-play" id="btnPlay" onclick="togglePlay()">
+      <i class="ti ti-player-play" id="playIcon"></i>
+    </button>
+    <div class="track-info">
+      <div class="track-name" id="trackName">Ninguna pista cargada</div>
+      <div class="track-time"><span id="curTime">0:00</span> / <span id="durTime">0:00</span></div>
+    </div>
+    <div class="progress-wrap">
+      <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1" oninput="seek(this.value)">
+      <div class="prog-label"><span>Volumen</span><span id="volVal">80%</span></div>
+      <input type="range" id="volBar" min="0" max="100" value="80" step="1" oninput="setVol(this.value)">
+    </div>
+  </div>
+
+  <div class="presets-row">
+    <span>Presets</span>
+    <button class="reset-btn" onclick="resetAll()"><i class="ti ti-refresh"></i> Resetear todo</button>
+  </div>
+  <div class="presets">
+    <button class="preset active" onclick="applyPreset('flat',this)">Plano</button>
+    <button class="preset" onclick="applyPreset('bassboost',this)">Bass Boost</button>
+    <button class="preset" onclick="applyPreset('hiphop',this)">Hip-Hop</button>
+    <button class="preset" onclick="applyPreset('electronic',this)">Electrónica</button>
+    <button class="preset" onclick="applyPreset('rock',this)">Rock</button>
+    <button class="preset" onclick="applyPreset('vocal',this)">Vocal</button>
+    <button class="preset" onclick="applyPreset('night',this)">Noche</button>
+  </div>
+
+  <div class="eq-section">
+    <div class="eq-title">Ecualizador de 6 bandas</div>
+    <div class="eq-grid">
+      <div class="eq-knob">
+        <div class="eq-label">Sub Bass <span class="eq-val" id="v-sub">0 dB</span></div>
+        <input type="range" id="sl-sub" min="-20" max="20" value="0" step="1" oninput="setEQ('sub',this.value)">
+      </div>
+      <div class="eq-knob">
+        <div class="eq-label">Bass <span class="eq-val" id="v-bass">0 dB</span></div>
+        <input type="range" id="sl-bass" min="-20" max="20" value="0" step="1" oninput="setEQ('bass',this.value)">
+      </div>
+      <div class="eq-knob">
+        <div class="eq-label">Low Mid <span class="eq-val" id="v-lowmid">0 dB</span></div>
+        <input type="range" id="sl-lowmid" min="-20" max="20" value="0" step="1" oninput="setEQ('lowmid',this.value)">
+      </div>
+      <div class="eq-knob">
+        <div class="eq-label">Mid <span class="eq-val" id="v-mid">0 dB</span></div>
+        <input type="range" id="sl-mid" min="-20" max="20" value="0" step="1" oninput="setEQ('mid',this.value)">
+      </div>
+      <div class="eq-knob">
+        <div class="eq-label">High Mid <span class="eq-val" id="v-highmid">0 dB</span></div>
+        <input type="range" id="sl-highmid" min="-20" max="20" value="0" step="1" oninput="setEQ('highmid',this.value)">
+      </div>
+      <div class="eq-knob">
+        <div class="eq-label">Treble <span class="eq-val" id="v-treble">0 dB</span></div>
+        <input type="range" id="sl-treble" min="-20" max="20" value="0" step="1" oninput="setEQ('treble',this.value)">
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-section">
+    <div class="eq-title">Efectos</div>
+    <div class="eq-grid">
+      <div class="eq-knob">
+        <div class="eq-label">Reverb <span class="eq-val" id="v-reverb">0%</span></div>
+        <input type="range" id="sl-reverb" min="0" max="100" value="0" step="1" oninput="setFX('reverb',this.value)">
+      </div>
+      <div class="eq-knob">
+        <div class="eq-label">Velocidad <span class="eq-val" id="v-speed">1.0x</span></div>
+        <input type="range" id="sl-speed" min="50" max="200" value="100" step="5" oninput="setFX('speed',this.value)">
+      </div>
+      <div class="eq-knob">
+        <div class="eq-label">Stereo Width <span class="eq-val" id="v-stereo">50%</span></div>
+        <input type="range" id="sl-stereo" min="0" max="100" value="50" step="1" oninput="setFX('stereo',this.value)">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+const YT_API_KEY = 'AIzaSyC_HOkmx-YTOJBSrT8ffek3XLwJ1i3_37w';
+let ytPlayer = null;
+let currentVideoId = null;
+
+let actx, source, gainNode, analyser, filters = {}, reverbNode, dryGain, wetGain, audioEl;
+let isPlaying = false;
+const BANDS = { sub:60, bass:200, lowmid:500, mid:1000, highmid:3000, treble:8000 };
+
+function onYouTubeIframeAPIReady() {}
+
+function searchYT() {
+  const q = document.getElementById('ytSearch').value.trim();
+  if (!q) return;
+  const loading = document.getElementById('yt-loading');
+  const error = document.getElementById('yt-error');
+  const results = document.getElementById('yt-results');
+  loading.style.display = 'block';
+  error.style.display = 'none';
+  results.innerHTML = '';
+  document.getElementById('yt-player-wrap').style.display = 'none';
+  document.getElementById('yt-notice').style.display = 'none';
+
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=6&q=${encodeURIComponent(q)}&key=${YT_API_KEY}`;
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      loading.style.display = 'none';
+      if (data.error) { error.textContent = 'Error: ' + data.error.message; error.style.display = 'block'; return; }
+      if (!data.items || data.items.length === 0) { error.textContent = 'No se encontraron resultados.'; error.style.display = 'block'; return; }
+      data.items.forEach(item => {
+        const vid = item.id.videoId;
+        const title = item.snippet.title;
+        const channel = item.snippet.channelTitle;
+        const thumb = item.snippet.thumbnails.default.url;
+        const card = document.createElement('div');
+        card.className = 'yt-card';
+        card.innerHTML = `
+          <img class="yt-thumb" src="${thumb}" alt="">
+          <div class="yt-info">
+            <div class="yt-vtitle">${title}</div>
+            <div class="yt-channel">${channel}</div>
+          </div>
+          <div class="yt-card-btns">
+            <button class="yt-btn play" onclick="playYTVideo('${vid}','${title.replace(/'/g,'')}')"><i class="ti ti-player-play"></i> Play</button>
+            <a href="https://www.youtube.com/watch?v=${vid}" target="_blank" style="text-decoration:none"><button class="yt-btn"><i class="ti ti-external-link"></i> YT</button></a>
+          </div>`;
+        results.appendChild(card);
+      });
+    })
+    .catch(e => { loading.style.display = 'none'; error.textContent = 'Error de conexión: ' + e.message; error.style.display = 'block'; });
+}
+
+function playYTVideo(videoId, title) {
+  currentVideoId = videoId;
+  const wrap = document.getElementById('yt-player-wrap');
+  wrap.style.display = 'block';
+  document.getElementById('yt-notice').style.display = 'block';
+  document.getElementById('trackName').textContent = title + ' (YouTube)';
+
+  if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+    ytPlayer.loadVideoById(videoId);
+  } else {
+    document.getElementById('yt-player').innerHTML = '';
+    ytPlayer = new YT.Player('yt-player', {
+      height: '200',
+      width: '100%',
+      videoId: videoId,
+      playerVars: { autoplay: 1, rel: 0, modestbranding: 1 },
+      events: {
+        onReady: e => e.target.playVideo(),
+        onError: () => {
+          document.getElementById('yt-error').textContent = 'Este video no se puede reproducir aquí. Ábrelo en YouTube.';
+          document.getElementById('yt-error').style.display = 'block';
+        }
+      }
+    });
+  }
+}
+
+function initAudio() {
+  if (actx) return;
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  audioEl = new Audio();
+  audioEl.crossOrigin = 'anonymous';
+  source = actx.createMediaElementSource(audioEl);
+  gainNode = actx.createGain();
+  gainNode.gain.value = 0.8;
+  analyser = actx.createAnalyser();
+  analyser.fftSize = 512;
+
+  let chain = source;
+  Object.keys(BANDS).forEach(k => {
+    const f = actx.createBiquadFilter();
+    f.type = (k==='sub'||k==='bass') ? 'lowshelf' : k==='treble' ? 'highshelf' : 'peaking';
+    f.frequency.value = BANDS[k];
+    f.Q.value = 1.2;
+    f.gain.value = 0;
+    filters[k] = f;
+    chain.connect(f);
+    chain = f;
+  });
+
+  reverbNode = actx.createConvolver();
+  buildReverb(0.5);
+  dryGain = actx.createGain(); dryGain.gain.value = 1;
+  wetGain = actx.createGain(); wetGain.gain.value = 0;
+  chain.connect(dryGain);
+  chain.connect(reverbNode);
+  reverbNode.connect(wetGain);
+  dryGain.connect(gainNode);
+  wetGain.connect(gainNode);
+  gainNode.connect(analyser);
+  analyser.connect(actx.destination);
+
+  audioEl.addEventListener('timeupdate', updateProgress);
+  audioEl.addEventListener('ended', () => { isPlaying = false; document.getElementById('playIcon').className = 'ti ti-player-play'; });
+  drawViz();
+}
+
+function buildReverb(duration) {
+  if (!actx) return;
+  const len = actx.sampleRate * duration;
+  const buf = actx.createBuffer(2, len, actx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/len, 2);
+  }
+  reverbNode.buffer = buf;
+}
+
+function setEQ(band, val) {
+  const v = parseInt(val);
+  document.getElementById('v-'+band).textContent = (v>0?'+':'')+v+' dB';
+  if (filters[band]) filters[band].gain.value = v;
+}
+
+function setFX(fx, val) {
+  if (fx==='reverb') {
+    document.getElementById('v-reverb').textContent = val+'%';
+    const w = parseFloat(val)/100;
+    if (wetGain) wetGain.gain.value = w*0.8;
+    if (dryGain) dryGain.gain.value = 1-w*0.3;
+    buildReverb(0.5+w*3);
+  } else if (fx==='speed') {
+    const s = (parseFloat(val)/100).toFixed(1);
+    document.getElementById('v-speed').textContent = s+'x';
+    if (audioEl) audioEl.playbackRate = parseFloat(s);
+  } else if (fx==='stereo') {
+    document.getElementById('v-stereo').textContent = val+'%';
+  }
+}
+
+function setVol(v) {
+  document.getElementById('volVal').textContent = v+'%';
+  if (gainNode) gainNode.gain.value = parseFloat(v)/100;
+}
+
+function loadFile(file) {
+  initAudio();
+  if (actx.state==='suspended') actx.resume();
+  audioEl.src = URL.createObjectURL(file);
+  audioEl.load();
+  document.getElementById('trackName').textContent = file.name.replace(/\.[^.]+$/,'');
+  audioEl.play().then(()=>{ isPlaying=true; document.getElementById('playIcon').className='ti ti-player-pause'; }).catch(()=>{});
+}
+
+function togglePlay() {
+  if (!audioEl||!audioEl.src) return;
+  if (actx&&actx.state==='suspended') actx.resume();
+  if (isPlaying) { audioEl.pause(); isPlaying=false; document.getElementById('playIcon').className='ti ti-player-play'; }
+  else { audioEl.play(); isPlaying=true; document.getElementById('playIcon').className='ti ti-player-pause'; }
+}
+
+function seek(v) { if (audioEl&&audioEl.duration) audioEl.currentTime = audioEl.duration*v/100; }
+
+function updateProgress() {
+  if (!audioEl) return;
+  const p = (audioEl.currentTime/audioEl.duration)*100||0;
+  document.getElementById('progressBar').value = p.toFixed(1);
+  document.getElementById('curTime').textContent = fmt(audioEl.currentTime);
+  document.getElementById('durTime').textContent = fmt(audioEl.duration||0);
+}
+
+function fmt(s) { const m=Math.floor(s/60),sec=Math.floor(s%60); return m+':'+(sec<10?'0':'')+sec; }
+
+function drawViz() {
+  const canvas = document.getElementById('viz');
+  const ctx = canvas.getContext('2d');
+  function resize(){ canvas.width=canvas.offsetWidth; canvas.height=80; }
+  resize();
+  window.addEventListener('resize', resize);
+  function loop(){
+    requestAnimationFrame(loop);
+    const W=canvas.width, H=canvas.height;
+    const buf=new Uint8Array(analyser?analyser.frequencyBinCount:128);
+    if (analyser) analyser.getByteFrequencyData(buf);
+    ctx.clearRect(0,0,W,H);
+    const barW=Math.max(2,W/buf.length-1);
+    buf.forEach((v,i)=>{
+      const h=(v/255)*H;
+      const ratio=i/buf.length;
+      ctx.fillStyle=`rgb(${Math.round(83+ratio*100)},${Math.round(74+ratio*50)},${Math.round(183-ratio*100)})`;
+      ctx.fillRect(i*(barW+1),H-h,barW,h);
+    });
+  }
+  loop();
+}
+
+const PRESETS = {
+  flat:       {sub:0, bass:0, lowmid:0, mid:0, highmid:0, treble:0},
+  bassboost:  {sub:12,bass:10,lowmid:4, mid:0, highmid:-2,treble:-1},
+  hiphop:     {sub:10,bass:8, lowmid:2, mid:-2,highmid:0, treble:3},
+  electronic: {sub:8, bass:6, lowmid:-2,mid:0, highmid:4, treble:6},
+  rock:       {sub:4, bass:6, lowmid:-2,mid:-1,highmid:4, treble:5},
+  vocal:      {sub:-4,bass:-2,lowmid:2, mid:6, highmid:4, treble:2},
+  night:      {sub:6, bass:4, lowmid:-4,mid:-4,highmid:-2,treble:-3}
+};
+
+function applyPreset(name, btn) {
+  const p = PRESETS[name];
+  Object.keys(p).forEach(k=>{ document.getElementById('sl-'+k).value=p[k]; setEQ(k,p[k]); });
+  document.querySelectorAll('.preset').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function resetAll() {
+  applyPreset('flat', document.querySelector('.preset'));
+  document.getElementById('sl-reverb').value=0; setFX('reverb',0);
+  document.getElementById('sl-speed').value=100; setFX('speed',100);
+  document.getElementById('sl-stereo').value=50; setFX('stereo',50);
+  document.getElementById('volBar').value=80; setVol(80);
+}
+
+function switchTab(t) {
+  document.getElementById('panel-file').style.display = t==='file'?'block':'none';
+  document.getElementById('panel-yt').style.display = t==='yt'?'block':'none';
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',(t==='file'&&i===0)||(t==='yt'&&i===1)));
+}
+
+document.getElementById('fileInput').addEventListener('change', e=>{ if(e.target.files[0]) loadFile(e.target.files[0]); });
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='#534AB7'; });
+dz.addEventListener('dragleave', ()=>{ dz.style.borderColor=''; });
+dz.addEventListener('drop', e=>{ e.preventDefault(); dz.style.borderColor=''; if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+drawViz();
+</script>
+</body>
+</html>
